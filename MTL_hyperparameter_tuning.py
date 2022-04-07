@@ -9,8 +9,8 @@ import pandas as pd
 import torch.nn.functional as F
 
 from sklearn import metrics
-from DeepBind import datasets, dataset_loader, test_dataset_loader
-from DeepBind import  ConvNet_test
+from TFBP import datasets, dataset_loader, test_dataset_loader
+from TFBP import  ConvNet_test
 
 if(torch.cuda.is_available()):
     print('Torch',torch.__version__, 'is available')
