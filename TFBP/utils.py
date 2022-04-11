@@ -7,7 +7,7 @@ import random
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
-DNAbases='ACGT' #DNA bases
+DNAbases='ACGT' # DNA bases
 
 def seqtopad(seq,motif_len):
     rows=len(seq)+2*motif_len-2
