@@ -1,3 +1,3 @@
-Test AUC : 0.563204
-Test Loss :tensor(0.6897)
-Elapsed Time : 0:03:29.830475
+Test AUC : 0.6708319999999999
+Test Loss :0.6693968772888184
+Elapsed Time : 0:03:52.547688

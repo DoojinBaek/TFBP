@@ -120,8 +120,8 @@ class Chip():
 
         return net_train, valid, train_dataset
 
-class Chip_two_tfs():
-    def __init__(self,filename1, filename2 ,motif_len=24,reverse_complemet_mode=False):
+class Chip_MT():
+    def __init__(self, filename1, filename2, motif_len=24, reverse_complemet_mode=False):
         self.file1 = filename1
         self.file2 = filename2
         self.motif_len = motif_len
@@ -133,30 +133,16 @@ class Chip_two_tfs():
         with gzip.open(self.file1, 'rt') as data:
             next(data)
             reader = csv.reader(data,delimiter='\t')
-            if not self.reverse_complemet_mode:
-              for row in reader:
-                      train_dataset.append([seqtopad(row[2],self.motif_len),[1]])
-                      train_dataset.append([seqtopad(dinuc_shuffling(row[2]),self.motif_len),[0]])
-            else:
-              for row in reader:
-                      train_dataset.append([seqtopad(row[2],self.motif_len),[1]])
-                      train_dataset.append([seqtopad(reverse_complement(row[2]),self.motif_len),[1]])
-                      train_dataset.append([seqtopad(dinuc_shuffling(row[2]),self.motif_len),[0]])
-                      train_dataset.append([seqtopad(dinuc_shuffling(reverse_complement(row[2])),self.motif_len),[0]])
+            for row in reader:
+                train_dataset.append([seqtopad(row[2],self.motif_len),[1], [0]])
+                train_dataset.append([seqtopad(dinuc_shuffling(row[2]),self.motif_len),[0], [0]])
 
         with gzip.open(self.file2, 'rt') as data:
             next(data)
             reader = csv.reader(data,delimiter='\t')
-            if not self.reverse_complemet_mode:
-              for row in reader:
-                      train_dataset.append([seqtopad(row[2],self.motif_len),[1]])
-                      train_dataset.append([seqtopad(dinuc_shuffling(row[2]),self.motif_len),[0]])
-            else:
-              for row in reader:
-                      train_dataset.append([seqtopad(row[2],self.motif_len),[1]])
-                      train_dataset.append([seqtopad(reverse_complement(row[2]),self.motif_len),[1]])
-                      train_dataset.append([seqtopad(dinuc_shuffling(row[2]),self.motif_len),[0]])
-                      train_dataset.append([seqtopad(dinuc_shuffling(reverse_complement(row[2])),self.motif_len),[0]])
+            for row in reader:
+                train_dataset.append([seqtopad(row[2],self.motif_len),[1], [1]])
+                train_dataset.append([seqtopad(dinuc_shuffling(row[2]),self.motif_len),[0], [1]])
 
         size=int(len(train_dataset)/3)
 
@@ -179,6 +165,22 @@ class chipseq_dataset(Dataset):
       
     def __getitem__(self, index):
         return self.x_data[index], self.y_data[index]
+
+    def __len__(self):
+        return self.len
+
+class chipseq_dataset_MT(Dataset):
+    def __init__(self,xy=None):
+        self.x_data=np.asarray([el[0] for el in xy],dtype=np.float32)
+        self.y_data =np.asarray([el[1] for el in xy ],dtype=np.float32)
+        self.z_data = np.asarray([el[2] for el in xy], dtype=np.int32)
+        self.x_data = torch.from_numpy(self.x_data)
+        self.y_data = torch.from_numpy(self.y_data)
+        self.z_data = torch.from_numpy(self.z_data)
+        self.len=len(self.x_data)
+      
+    def __getitem__(self, index):
+        return self.x_data[index], self.y_data[index], self.z_data[index]
 
     def __len__(self):
         return self.len
@@ -206,15 +208,15 @@ def dataset_loader(path, batch_size = 64, reverse_mode = False):
 
     return train_loader, valid_loader, all_loader
 
-def dataset_loader_two_tfs(path1, path2, batch_size = 64, reverse_mode = False):
+def dataset_loader_MT(path1, path2, batch_size = 64, reverse_mode = False):
 
-    chipseq=Chip_two_tfs(path1, path2, reverse_complemet_mode=reverse_mode)
+    chipseq=Chip_MT(path1, path2, reverse_complemet_mode=reverse_mode)
 
     train, valid, all=chipseq.openFile()
 
-    train_dataset=chipseq_dataset(train)
-    valid_dataset=chipseq_dataset(valid)
-    all_dataset=chipseq_dataset(all)
+    train_dataset=chipseq_dataset_MT(train)
+    valid_dataset=chipseq_dataset_MT(valid)
+    all_dataset=chipseq_dataset_MT(all)
 
     batchSize=batch_size
 
