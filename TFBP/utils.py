@@ -252,11 +252,46 @@ class Chip_test():
             
         return test_dataset
 
+class Chip_test_MT():
+    def __init__(self, filename1, filename2, motif_len,reverse_complemet_mode=False):
+        self.file1 = filename1
+        self.file2 = filename2
+        self.motif_len = motif_len
+        self.reverse_complemet_mode=reverse_complemet_mode
+            
+    def openFile(self):
+        test_dataset=[]
+
+        with gzip.open(self.file1, 'rt') as data:
+            next(data)
+            reader = csv.reader(data,delimiter='\t')
+            for row in reader:
+                    test_dataset.append([seqtopad(row[2],self.motif_len),[int(row[3])], [0]])
+
+        with gzip.open(self.file2, 'rt') as data:
+            next(data)
+            reader = csv.reader(data,delimiter='\t')
+            for row in reader:
+                    test_dataset.append([seqtopad(row[2],self.motif_len),[int(row[3])], [1]])
+        
+        return test_dataset
+
 def test_dataset_loader(filepath, motif_len):
     chipseq_test=Chip_test(filepath, motif_len)
     test_data=chipseq_test.openFile()
 
     test_dataset=chipseq_dataset(test_data)
+    batchSize=test_dataset.__len__() # at once
+
+    test_loader = DataLoader(dataset=test_dataset,batch_size=batchSize,shuffle=False)
+
+    return test_loader
+
+def test_dataset_loader_MT(path1, path2, motif_len):
+    chipseq_test=Chip_test_MT(path1, path2, motif_len)
+    test_data=chipseq_test.openFile()
+
+    test_dataset=chipseq_dataset_MT(test_data)
     batchSize=test_dataset.__len__() # at once
 
     test_loader = DataLoader(dataset=test_dataset,batch_size=batchSize,shuffle=False)

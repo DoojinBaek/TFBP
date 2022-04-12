@@ -1,0 +1,3 @@
+Test AUC : 0.639756
+Test Loss :0.9703204035758972
+Elapsed Time : 4:10:17.102410

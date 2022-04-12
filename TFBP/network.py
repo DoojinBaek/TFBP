@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from scipy.stats import bernoulli
 
 class ConvNet(nn.Module):
-    def __init__(self,nummotif,motiflen,poolType,mode,learning_rate,dropprob,beta1,beta2,beta3,beta4,device):
+    def __init__(self,nummotif,motiflen,poolType,mode,learning_rate,dropprob,device):
         super(ConvNet, self).__init__()
         self.device = device
         self.poolType=poolType
@@ -48,11 +48,6 @@ class ConvNet(nn.Module):
         self.wNeu.requires_grad=True
         self.wNeuBias.requires_grad=True
 
-        self.beta1=beta1
-        self.beta2=beta2
-        self.beta3=beta3
-        self.beta4=beta4
-
     def forward_pass(self,x,mask=None,use_mask=False):
         # conv1
         conv1 = F.conv1d(x, self.wConv1, bias=self.wRect1, stride=1, padding=0)
@@ -88,7 +83,7 @@ class ConvNet(nn.Module):
         return out
 
 class ConvNet_Base(nn.Module):
-    def __init__(self,nummotif,motiflen,poolType,mode,learning_rate,dropprob,beta1,beta2,device):
+    def __init__(self,nummotif,motiflen,poolType,mode,learning_rate,dropprob,device):
         super(ConvNet_Base, self).__init__()
         self.device = device
         self.poolType=poolType
@@ -112,9 +107,6 @@ class ConvNet_Base(nn.Module):
         self.wRect2=-self.wRect2
         self.wRect2.requires_grad=True
 
-        self.beta1=beta1
-        self.beta2=beta2
-
     def forward_pass(self,x,mask=None,use_mask=False):
         # conv1
         conv1 = F.conv1d(x, self.wConv1, bias=self.wRect1, stride=1, padding=0)
@@ -135,7 +127,7 @@ class ConvNet_Base(nn.Module):
         return out
 
 class FC(nn.Module):
-    def __init__(self,nummotif,poolType,mode,learning_rate,dropprob,beta1,beta2,beta3,beta4,device):
+    def __init__(self,nummotif,poolType,mode,learning_rate,dropprob,device):
         super(FC, self).__init__()
         self.device = device
         self.poolType=poolType
@@ -163,9 +155,6 @@ class FC(nn.Module):
         self.wNeu.requires_grad=True
         self.wNeuBias.requires_grad=True
 
-        self.beta3=beta3
-        self.beta4=beta4
-
     def forward_pass(self,x,mask=None,use_mask=False):
 
         hid= x @ self.wHidden
@@ -189,18 +178,21 @@ class FC(nn.Module):
         return out
 
 class MTL_Model():
-    def __init__(self, task1, task2, nummotif,motiflen,poolType,mode,learning_rate,dropprob,beta1,beta2,beta3,beta4, device):
+    def __init__(self, nummotif,motiflen,poolType,mode,learning_rate,dropprob, device):
         super(MTL_Model, self).__init__()
 
         # hard-shared layers
-        self.net = ConvNet(nummotif,motiflen,poolType,mode,learning_rate,dropprob,beta1,beta2,beta3,beta4, device).to(device)
+        self.net = ConvNet_Base(nummotif,motiflen,poolType,mode,learning_rate,dropprob,device).to(device)
         # task specific
-        self.net1 = ConvNet(nummotif,motiflen,poolType,mode,learning_rate,dropprob,beta1,beta2,beta3,beta4, device).to(device)
-        self.net2 = ConvNet(nummotif,motiflen,poolType,mode,learning_rate,dropprob,beta1,beta2,beta3,beta4, device).to(device)
+        self.net1 = FC(nummotif,poolType,mode,learning_rate,dropprob,device).to(device)
+        self.net2 = FC(nummotif,poolType,mode,learning_rate,dropprob,device).to(device)
     
     def forward(self, x, task):
         pool = self.net(x)
-        # task -> 64(batch size) by 1 tensor
-        # pool -> 64 by 2d tensor
-        
-        return [self.net1(pool), self.net2(pool)]
+        if task == 0:
+            return self.net1(pool)
+        elif task == 1:
+            return self.net2(pool)
+        else:
+            print('wrong task')
+            return None
