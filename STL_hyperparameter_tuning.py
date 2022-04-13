@@ -7,8 +7,7 @@ import numpy as np
 import torch.nn.functional as F
 
 from sklearn import metrics
-from TFBP import datasets, dataset_loader, test_dataset_loader
-from TFBP import ConvNet
+from TFBP import datasets, dataset_loader, test_dataset_loader, STL_Model
 
 if(torch.cuda.is_available()):
     print('Torch',torch.__version__, 'is available')
@@ -39,12 +38,9 @@ def main():
     # Hyperparameters
     num_epochs = 150
     num_motif_detector = 16
-    motif_len =24
+    motif_len = 24
     batch_size = 64
-    beta1 = 2*10**-6
-    beta2 = 2*10**-6 # hyperparameter tuning 해야함!!
-    beta3 = 5*10**-6
-    beta4 = 2*10**-6
+    reg = 2*10**-6
     if CodeTesting:
         pool_type = ['max']
         dropout_rate_type = [0.2]
@@ -131,13 +127,13 @@ def main():
 
         print('Model Training')
 
-        model = ConvNet(num_motif_detector,motif_len,pool,'training',lr, dropout_rate,beta1,beta2,beta3,beta4,device).to(device)
+        model = STL_Model(num_motif_detector,motif_len,pool,'training',lr, dropout_rate,device)
 
         # optimizer
         if opt == 'SGD':
-            optimizer = torch.optim.SGD([model.wConv1, model.wRect1, model.wConv2, model.wRect2, model.wNeu, model.wNeuBias, model.wHidden, model.wHiddenBias] , lr = lr, momentum = 0.9) 
+            optimizer = torch.optim.SGD([model.base.wConv1, model.base.wRect1, model.base.wConv2, model.base.wRect2, model.fc.wNeu, model.fc.wNeuBias, model.fc.wHidden, model.fc.wHiddenBias], lr = lr, momentum = 0.9) 
         else:
-            optimizer = torch.optim.SGD([model.wConv1, model.wRect1, model.wConv2, model.wRect2, model.wNeu, model.wNeuBias, model.wHidden, model.wHiddenBias], lr = lr)
+            optimizer = torch.optim.SGD([model.base.wConv1, model.base.wRect1, model.base.wConv2, model.base.wRect2, model.fc.wNeu, model.fc.wNeuBias, model.fc.wHidden, model.fc.wHiddenBias], lr = lr)
 
         # scheduler
         if scheduler == True:
@@ -159,8 +155,10 @@ def main():
                 target = target.to(device)
 
                 # Forward pass
-                output = model(data)
-                loss = F.binary_cross_entropy(torch.sigmoid(output),target) + model.beta1*model.wConv1.norm() + model.beta2*model.wConv2.norm() + model.beta3*model.wHidden.norm() + model.beta4*model.wNeu.norm()
+                output = model.forward(data)
+
+                loss = F.binary_cross_entropy(torch.sigmoid(output),target) + reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()
+
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -168,16 +166,20 @@ def main():
                 
             with torch.no_grad():
                 # for train set
-                model.mode='test'
+                model.base.mode = 'test'
+                model.fc.mode = 'test'
+
                 train_auc = []
-                train_loss = []
+                train_loss_bce = []
+                train_loss_rest = []
                 for idx, (data, target) in enumerate(train_loader):
                     data = data.to(device)
                     target = target.to(device)
 
                     # Forward pass
-                    output = model(data)
-                    train_loss.append((F.binary_cross_entropy(torch.sigmoid(output),target) + model.beta1*model.wConv1.norm() + model.beta2*model.wConv2.norm() + model.beta3*model.wHidden.norm() + model.beta4*model.wNeu.norm()).cpu())
+                    output = model.forward(data)
+                    train_loss_bce.append((F.binary_cross_entropy(torch.sigmoid(output),target)).cpu())
+                    train_loss_rest.append((reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu())
                     pred_sig=torch.sigmoid(output)
                     pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
                     labels=target.cpu().numpy().reshape(output.shape[0])
@@ -187,10 +189,13 @@ def main():
                         pass
 
                 AUC_training = np.mean(train_auc)
-                Loss_training = np.mean(train_loss)
+                Loss_training_bce = np.mean(train_loss_bce)
+                Loss_trainin_rest = np.mean(train_loss_rest)
 
                 # for valid set
-                model.mode='test'
+                model.base.mode = 'test'
+                model.fc.mode = 'test'
+                
                 valid_auc = []
                 valid_loss = []
                 for idx, (data, target) in enumerate(valid_loader):
@@ -198,8 +203,8 @@ def main():
                     target = target.to(device)
 
                     # Forward pass
-                    output = model(data)
-                    valid_loss.append((F.binary_cross_entropy(torch.sigmoid(output),target) + model.beta1*model.wConv1.norm() + model.beta2*model.wConv2.norm() + model.beta3*model.wHidden.norm() + model.beta4*model.wNeu.norm()).cpu())
+                    output = model.forward(data)
+                    valid_loss.append((F.binary_cross_entropy(torch.sigmoid(output),target) + reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu())
                     pred_sig=torch.sigmoid(output)
                     pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
                     labels=target.cpu().numpy().reshape(output.shape[0])
@@ -214,7 +219,9 @@ def main():
                 with open("./results/"+name+'-'+id+'/'+'train/'+str(case_num)+'.txt', "a") as file:
                     file.write(str(AUC_training))
                     file.write(':')
-                    file.write(str(Loss_training))
+                    file.write(str(Loss_training_bce))
+                    file.write('+')
+                    file.write(str(Loss_trainin_rest))
                     file.write('\n')
                 file.close()
                 with open("./results/"+name+'-'+id+'/'+'valid/'+str(case_num)+'.txt', "a") as file:
@@ -227,14 +234,14 @@ def main():
                 if Loss_valid < Loss_best: # update the model based on the loss
                     Loss_best = Loss_valid
                     best_model = model
-                    state = {'conv1': model.wConv1,
-                            'rect1':model.wRect1,
-                            'conv2': model.wConv2,
-                            'rect2': model.wRect2,
-                            'wHidden':model.wHidden,
-                            'wHiddenBias':model.wHiddenBias,
-                            'wNeu':model.wNeu,
-                            'wNeuBias':model.wNeuBias}
+                    state = {'conv1': model.base.wConv1,
+                            'rect1':model.base.wRect1,
+                            'conv2': model.base.wConv2,
+                            'rect2': model.base.wRect2,
+                            'wHidden':model.fc.wHidden,
+                            'wHiddenBias':model.fc.wHiddenBias,
+                            'wNeu':model.fc.wNeu,
+                            'wNeuBias':model.fc.wNeuBias}
 
                     if not os.path.exists('./Models/' + name + '/' + id):
                         os.makedirs('./Models/' + name + '/' + id)
@@ -252,7 +259,9 @@ def main():
         model = best_model
 
         with torch.no_grad():
-            model.mode='test'
+            model.base.mode = 'test'
+            model.fc.mode = 'test'
+
             test_auc = []
             test_loss = 0
             
@@ -261,8 +270,8 @@ def main():
                 target = target.to(device)
 
                 # Forward pass
-                output = model(data)
-                test_loss = (F.binary_cross_entropy(torch.sigmoid(output),target) + model.beta1*model.wConv1.norm() + model.beta2*model.wConv2.norm() + model.beta3*model.wHidden.norm() + model.beta4*model.wNeu.norm()).cpu()
+                output = model.forward(data)
+                test_loss = (F.binary_cross_entropy(torch.sigmoid(output),target) + reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu()
                 pred_sig=torch.sigmoid(output)
                 pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
                 labels=target.cpu().numpy().reshape(output.shape[0])

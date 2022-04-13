@@ -135,7 +135,6 @@ class FC(nn.Module):
         self.learning_rate=learning_rate
         self.dropprob=dropprob
         # for FC
-        self.wHidden=torch.randn(2*nummotif,32).to(device)
         self.wHiddenBias=torch.randn(32).to(device)
         if poolType=='maxavg':
             self.wHidden=torch.randn(2*nummotif,32).to(device)
@@ -143,7 +142,6 @@ class FC(nn.Module):
             self.wHidden=torch.randn(nummotif,32).to(device)
             
         self.wNeu=torch.randn(33,1).to(device)
-        self.wHiddenBias=torch.randn(32).to(device)
         torch.nn.init.xavier_uniform_(self.wNeu)
         (self.wNeu, self.wNeuBias) = self.wNeu.split(list(self.wNeu.size())[0]-1, dim=0)
         torch.nn.init.normal_(self.wHidden,mean=0,std=0.3)
@@ -159,7 +157,7 @@ class FC(nn.Module):
 
         hid= x @ self.wHidden
         hid.add_(self.wHiddenBias)
-        hid=hid.clamp(min=0)
+        hid=hid.clamp(min=0) # activation
 
         if self.mode=='training': 
             if  not use_mask:
@@ -196,3 +194,14 @@ class MTL_Model():
         else:
             print('wrong task')
             return None
+
+class STL_Model():
+    def __init__(self, nummotif,motiflen,poolType,mode,learning_rate,dropprob, device):
+        super(STL_Model, self).__init__()
+
+        self.base = ConvNet_Base(nummotif,motiflen,poolType,mode,learning_rate,dropprob,device).to(device)
+        self.fc = FC(nummotif,poolType,mode,learning_rate,dropprob,device).to(device)
+    
+    def forward(self, x):
+        pool = self.base(x)
+        return self.fc(pool)
