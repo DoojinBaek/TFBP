@@ -41,6 +41,7 @@ def main():
     motif_len = 24
     batch_size = 64
     reg = 2*10**-6
+
     if CodeTesting:
         pool_type = ['max']
         dropout_rate_type = [0.2]
@@ -147,6 +148,10 @@ def main():
         Loss_best = 1000 # big enough
 
         for epoch in range(num_epochs):
+            
+            model.base.mode = 'training'
+            model.fc.mode = 'training'
+
             if epoch%10 == 0:
                 print(epoch, 'th epoch over ', num_epochs)
             for idx, (data, target) in enumerate(train_loader):

@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : ARID3A_K562_ARID3A_(sc-8821)_Stanford, ZBTB7A_HepG2_ZBTB7A_(SC-34508)_HudsonAlpha
+43th experiment over 72
+pool : max, dropout rate : 0.2, lr : 0.075, scheduler : False, optimizer : SGD
