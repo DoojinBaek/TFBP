@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : ARID3A
+35th experiment over 72
+pool : maxavg, dropout rate : 0.4, lr : 0.01, scheduler : False, optimizer : SGD

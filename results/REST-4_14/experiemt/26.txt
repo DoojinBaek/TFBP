@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : REST
+27th experiment over 72
+pool : maxavg, dropout rate : 0.4, lr : 0.001, scheduler : False, optimizer : SGD

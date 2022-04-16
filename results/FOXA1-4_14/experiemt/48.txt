@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : FOXA1
+49th experiment over 72
+pool : max, dropout rate : 0.3, lr : 0.001, scheduler : True, optimizer : SGD

@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : GABPA
+22th experiment over 72
+pool : maxavg, dropout rate : 0.3, lr : 0.05, scheduler : True, optimizer : Adam

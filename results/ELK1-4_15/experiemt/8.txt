@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : ELK1
+9th experiment over 72
+pool : maxavg, dropout rate : 0.4, lr : 0.05, scheduler : True, optimizer : SGD
