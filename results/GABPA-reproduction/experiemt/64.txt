@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : GABPA
+65th experiment over 72
+pool : max, dropout rate : 1.0, lr : 0.01, scheduler : True, optimizer : SGD

@@ -1,5 +1,6 @@
 import os
 import time
+import copy
 import datetime
 
 import torch
@@ -293,7 +294,7 @@ def main():
 
             if Loss_valid < loss_best:
                 loss_best = Loss_valid
-                best_model = model
+                best_model = copy.deepcopy(model)
                 state = {'conv1': model.net.wConv1,
                         'rect1':model.net.wRect1,
                         'conv2':model.net.wConv2,

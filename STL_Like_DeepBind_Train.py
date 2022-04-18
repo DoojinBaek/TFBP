@@ -46,14 +46,14 @@ def main():
 
     if CodeTesting:
         pool_type = ['max']
-        dropout_rate_type = [0.2]
+        dropout_rate_type = [0.75]
         lr_type_adam = [0.01]
         lr_type_sgd = ['error']
         scheduler_type = [True, False] # use Cosine Annealing or not
         opt_type = ['Adam'] # optimizer
     else:
         pool_type = ['maxavg', 'max']
-        dropout_rate_type = [0.4, 0.5, 0.6]
+        dropout_rate_type = [0.5, 0.75, 1.0] # 1.0 for no-dropout
         lr_type_sgd = [0.005, 0.01, 0.05]
         lr_type_adam = [0.01, 0.05, 0.1]
         # dropout_rate_type = [0.2, 0.3, 0.4]

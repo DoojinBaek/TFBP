@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : MYC
+27th experiment over 72
+pool : maxavg, dropout rate : 1.0, lr : 0.005, scheduler : False, optimizer : SGD
