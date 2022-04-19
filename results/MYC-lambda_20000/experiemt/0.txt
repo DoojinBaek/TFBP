@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : MYC
+1th experiment over 1
+pool : max, dropout rate : 1.0, lr : 0.05, scheduler : False, optimizer : Adam

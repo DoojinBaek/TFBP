@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : ARID3A
+4th experiment over 16
+pool : maxavg, dropout rate : 1.0, lr : 0.01, scheduler : False, optimizer : Adam

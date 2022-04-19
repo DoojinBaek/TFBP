@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : ARID3A
+13th experiment over 16
+pool : max, dropout rate : 1.0, lr : 0.01, scheduler : False, optimizer : SGD

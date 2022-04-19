@@ -52,22 +52,30 @@ def main():
     elif lambda_input == 1000:
         reg = 4*10**-5
     elif lambda_input == 10000:
-        reg = 4*10**-5
+        reg = 4*10**-6
     elif lambda_input == 20000:
         reg = 2*10**-6
 
-    pool_type = ['maxavg', 'max']
-    dropout_rate_type = [1.0] # 1.0 for no-dropout
-    lr_type_sgd = [0.001, 0.005, 0.01, 0.05]
-    lr_type_adam = [0.005, 0.01, 0.05, 0.1]
-    scheduler_type = [False] # use Cosine Annealing or not
-    opt_type = ['SGD', 'Adam'] # optimizer
+    # pool_type = ['max']
+    # dropout_rate_type = [1.0] # 1.0 for no-dropout
+    # lr_type_sgd = [0.001, 0.005, 0.01, 0.05]
+    # lr_type_adam = [0.05]
+    # scheduler_type = [False] # use Cosine Annealing or not
+    # opt_type = ['Adam'] # optimizer
+
+    # MYC Best Settings
+    pool_type = ['maxavg']
+    dropout_rate_type = [0.5] # 1.0 for no-dropout
+    lr_type_sgd = [0.01]
+    lr_type_adam = [0.05]
+    scheduler_type = [True] # use Cosine Annealing or not
+    opt_type = ['SGd'] # optimizer
 
     total_cases = len(pool_type)*len(dropout_rate_type)*len(lr_type_adam)*len(scheduler_type)*len(opt_type)
     print('Total cases :', total_cases)
 
     # Settings
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # dataset
     path = './data/encode/'
@@ -201,4 +209,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    exec(open('STL_Like_DeepBind_Test.py').read())
+    exec(open('STL_Like_DeepBind_Test_simple.py').read())
