@@ -122,6 +122,10 @@ def mkdir(name, id):
     if not os.path.exists("./results/"+name+'-'+id+'/'+'test/'):
         os.makedirs("./results/"+name+'-'+id+'/'+'test/')
 
+def mkdir_simple(name, id):
+    if not os.path.exists("./results/"+name+'-'+id+'/'+'test/'):
+        os.makedirs("./results/"+name+'-'+id+'/'+'test/')
+
 def mkdir_exp_multiple(name, id, num_exp):
     for exp_num in range(num_exp):
         if not os.path.exists("./results/"+name+'-'+id+'/'+'test/'+str(exp_num+1)):

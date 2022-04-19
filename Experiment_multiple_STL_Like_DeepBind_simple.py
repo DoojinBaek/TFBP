@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from sklearn import metrics
 from TFBP import datasets, dataset_loader, test_dataset_loader, STL_Model
-from TFBP import write_settings_test, write_train_test_result_exp_multiple, write_test_result_exp_multiple, regularization_coefficient, mkdir_exp_multiple 
+from TFBP import write_settings_test, write_train_test_result, write_test_result, regularization_coefficient, mkdir_simple
 
 if(torch.cuda.is_available()):
     print('Torch',torch.__version__, 'is available')
@@ -23,7 +23,8 @@ def arg_parser():
     parser.add_argument('--reg', type=int, required=False, default = 20000, choices=[1, 10, 100, 1000, 10000, 20000])
     parser.add_argument('--dr', type=float, required=False, default=1.0)
     parser.add_argument('--lr', type=float, required=False, default=0.05)
-    parser.add_argument('--num_exp', type=int, required=False, default=5)
+    parser.add_argument('--num_models', type=int, required=False, default=6)
+    parser.add_argument('--epoch', type=int, required=False, default=150)
 
     args = parser.parse_args()
     return args
@@ -41,11 +42,12 @@ def main():
     dr = args.dr
     lambda_input = args.reg
     lr = args.lr
-    num_exp = args.num_exp
+    num_model = args.num_models
+    epochs = args.epoch
 
     # Hyperparameters
-    Num_Model = 6
-    num_epochs = 150
+    Num_Model = num_model
+    num_epochs = epochs
     num_motif_detector = 16
     motif_len = 24
     batch_size = 64
@@ -71,172 +73,168 @@ def main():
     _, _, _, _, _, _, train_loader = dataset_loader(train_dataset_path, batch_size)
     test_loader = test_dataset_loader(test_dataset_path, motif_len)
 
-    mkdir_exp_multiple(name, id, num_exp)
+    mkdir_simple(name, id)
     write_settings_test(name, id, pool, dropout_rate, lr, scheduler, opt)
 
     test_auc_best = 0
 
-    for exp_num in range(num_exp):
-        exp_num = exp_num+1
-        print('Experiment ', exp_num)
+    for model_num in range(Num_Model):
+        # Model Training
+        print('Training Model', model_num+1)
 
-        for model_num in range(Num_Model):
-            # Model Training
-            print('Training Model', model_num+1)
+        model = STL_Model(num_motif_detector, motif_len, pool, 'training', lr, dropout_rate, device)
 
-            model = STL_Model(num_motif_detector, motif_len, pool, 'training', lr, dropout_rate, device)
+        # optimizer
+        if opt == 'SGD':
+            optimizer = torch.optim.SGD([model.base.wConv1, model.base.wRect1, model.base.wConv2, model.base.wRect2, model.fc.wNeu, model.fc.wNeuBias, model.fc.wHidden, model.fc.wHiddenBias], lr = lr, momentum = 0.9) 
+        else:
+            optimizer = torch.optim.SGD([model.base.wConv1, model.base.wRect1, model.base.wConv2, model.base.wRect2, model.fc.wNeu, model.fc.wNeuBias, model.fc.wHidden, model.fc.wHiddenBias], lr = lr)
 
-            # optimizer
-            if opt == 'SGD':
-                optimizer = torch.optim.SGD([model.base.wConv1, model.base.wRect1, model.base.wConv2, model.base.wRect2, model.fc.wNeu, model.fc.wNeuBias, model.fc.wHidden, model.fc.wHiddenBias], lr = lr, momentum = 0.9) 
-            else:
-                optimizer = torch.optim.SGD([model.base.wConv1, model.base.wRect1, model.base.wConv2, model.base.wRect2, model.fc.wNeu, model.fc.wNeuBias, model.fc.wHidden, model.fc.wHiddenBias], lr = lr)
-
-            # scheduler
-            if scheduler == True:
-                scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
-            else:
-                scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=1) # constant learning rate
+        # scheduler
+        if scheduler == True:
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
+        else:
+            scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=1) # constant learning rate
+        
+        for epoch in range(num_epochs):
+            if epoch%10 == 0:
+                print(epoch, 'th epoch over', num_epochs)
             
-            for epoch in range(num_epochs):
-                if epoch%10 == 0:
-                    print(epoch, 'th epoch over', num_epochs)
-                
-                # training
-                for idx, (data, target) in enumerate(train_loader):
+            # training
+            for idx, (data, target) in enumerate(train_loader):
 
-                    model.base.mode = 'training'
-                    model.fc.mode = 'training'
+                model.base.mode = 'training'
+                model.fc.mode = 'training'
 
-                    data = data.to(device)
-                    target = target.to(device)
-                    
-                    # Forward
-                    output = model.forward(data)
-                    loss = F.binary_cross_entropy(torch.sigmoid(output),target) + reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()
-
-                    # Backward
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                scheduler.step()
-
-                with torch.no_grad():
-                # save model performance
-                    model.base.mode = 'test'
-                    model.fc.mode = 'test'
-
-                    # For training set
-                    train_auc = []
-                    train_loss_bce = []
-                    train_loss_rest = []
-
-                    for idx, (data, target) in enumerate(train_loader):
-                        data = data.to(device)
-                        target = target.to(device)
-
-                        # Forward
-                        output = model.forward(data)
-
-                        train_loss_bce.append((F.binary_cross_entropy(torch.sigmoid(output),target)).cpu())
-                        train_loss_rest.append((reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu())
-
-                        pred_sig=torch.sigmoid(output)
-                        pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
-                        labels=target.cpu().numpy().reshape(output.shape[0])
-                        try:
-                            train_auc.append(metrics.roc_auc_score(labels, pred))
-                        except ValueError:
-                            pass
-
-                    AUC_training = np.mean(train_auc)
-                    Loss_training_bce = np.mean(train_loss_bce)
-                    Loss_training_rest = np.mean(train_loss_rest)
-
-                    # For validation(test) set
-                    test_auc = []
-                    test_loss_bce = []
-                    test_loss_rest = []
-
-                    for idx, (data, target) in enumerate(test_loader):
-                        data = data.to(device)
-                        target = target.to(device)
-
-                        # Forward
-                        output = model.forward(data)
-
-                        test_loss_bce.append((F.binary_cross_entropy(torch.sigmoid(output),target)).cpu())
-                        test_loss_rest.append((reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu())
-
-                        pred_sig=torch.sigmoid(output)
-                        pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
-                        labels=target.cpu().numpy().reshape(output.shape[0])
-                        try:
-                            test_auc.append(metrics.roc_auc_score(labels, pred))
-                        except ValueError:
-                            pass
-
-                    AUC_test = np.mean(test_auc)
-                    Loss_test_bce = np.mean(test_loss_bce)
-                    Loss_test_rest = np.mean(test_loss_rest)
-
-                    # write results
-                    write_train_test_result_exp_multiple(name, id, AUC_training, Loss_training_bce, Loss_training_rest, AUC_test, Loss_test_bce, Loss_test_rest, model_num, exp_num)
-
-                    # save model
-                    if test_auc_best < AUC_test:
-                        test_auc_best = AUC_test
-                        best_model = copy.deepcopy(model)
-                        state = {'conv1': model.base.wConv1,
-                                'rect1':model.base.wRect1,
-                                'conv2': model.base.wConv2,
-                                'rect2': model.base.wRect2,
-                                'wHidden':model.fc.wHidden,
-                                'wHiddenBias':model.fc.wHiddenBias,
-                                'wNeu':model.fc.wNeu,
-                                'wNeuBias':model.fc.wNeuBias}
-
-                        if not os.path.exists('./Models/' + name + '/' + id):
-                            os.makedirs('./Models/' + name + '/' + id)
-                            
-                        torch.save(state, './Models/' + name + '/' + id + '/' + 'best_model' + '.pth')
-
-        print('Training Completed')
-
-        # Report Performance
-
-        print('Reporting Model Performance')
-
-        model = best_model
-
-        with torch.no_grad():
-            model.base.mode = 'test'
-            model.fc.mode = 'test'
-
-            test_auc = []
-            test_loss_bce = 0
-            test_loss_rest = 0
-            
-            for idx, (data, target) in enumerate(test_loader):
                 data = data.to(device)
                 target = target.to(device)
-
-                # Forward pass
-                output = model.forward(data)
-
-                test_loss_bce = (F.binary_cross_entropy(torch.sigmoid(output),target)).cpu()
-                test_loss_rest = (reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu()
                 
-                pred_sig=torch.sigmoid(output)
-                pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
-                labels=target.cpu().numpy().reshape(output.shape[0])
-                try:
-                    test_auc.append(metrics.roc_auc_score(labels, pred))
-                except ValueError:
-                    pass
+                # Forward
+                output = model.forward(data)
+                loss = F.binary_cross_entropy(torch.sigmoid(output),target) + reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()
 
-            AUC_test=np.mean(test_auc)
-            write_test_result_exp_multiple(name, id, AUC_test, test_loss_bce, test_loss_rest, exp_num)
+                # Backward
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            scheduler.step()
+
+            with torch.no_grad():
+            # save model performance
+                model.base.mode = 'test'
+                model.fc.mode = 'test'
+
+                # For training set
+                train_auc = []
+                train_loss_bce = []
+                train_loss_rest = []
+
+                for idx, (data, target) in enumerate(train_loader):
+                    data = data.to(device)
+                    target = target.to(device)
+
+                    # Forward
+                    output = model.forward(data)
+
+                    train_loss_bce.append((F.binary_cross_entropy(torch.sigmoid(output),target)).cpu())
+                    train_loss_rest.append((reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu())
+
+                    pred_sig=torch.sigmoid(output)
+                    pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
+                    labels=target.cpu().numpy().reshape(output.shape[0])
+                    try:
+                        train_auc.append(metrics.roc_auc_score(labels, pred))
+                    except ValueError:
+                        pass
+
+                AUC_training = np.mean(train_auc)
+                Loss_training_bce = np.mean(train_loss_bce)
+                Loss_training_rest = np.mean(train_loss_rest)
+
+                # For validation(test) set
+                test_auc = []
+                test_loss_bce = []
+                test_loss_rest = []
+
+                for idx, (data, target) in enumerate(test_loader):
+                    data = data.to(device)
+                    target = target.to(device)
+
+                    # Forward
+                    output = model.forward(data)
+
+                    test_loss_bce.append((F.binary_cross_entropy(torch.sigmoid(output),target)).cpu())
+                    test_loss_rest.append((reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu())
+
+                    pred_sig=torch.sigmoid(output)
+                    pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
+                    labels=target.cpu().numpy().reshape(output.shape[0])
+                    try:
+                        test_auc.append(metrics.roc_auc_score(labels, pred))
+                    except ValueError:
+                        pass
+
+                AUC_test = np.mean(test_auc)
+                Loss_test_bce = np.mean(test_loss_bce)
+                Loss_test_rest = np.mean(test_loss_rest)
+
+                # write results
+                write_train_test_result(name, id, AUC_training, Loss_training_bce, Loss_training_rest, AUC_test, Loss_test_bce, Loss_test_rest, model_num)
+
+                # save model
+                if test_auc_best < AUC_test:
+                    test_auc_best = AUC_test
+                    best_model = copy.deepcopy(model)
+                    state = {'conv1': model.base.wConv1,
+                            'rect1':model.base.wRect1,
+                            'conv2': model.base.wConv2,
+                            'rect2': model.base.wRect2,
+                            'wHidden':model.fc.wHidden,
+                            'wHiddenBias':model.fc.wHiddenBias,
+                            'wNeu':model.fc.wNeu,
+                            'wNeuBias':model.fc.wNeuBias}
+
+                    if not os.path.exists('./Models/' + name + '/' + id):
+                        os.makedirs('./Models/' + name + '/' + id)
+                        
+                    torch.save(state, './Models/' + name + '/' + id + '/' + 'best_model' + '.pth')
+
+    print('Training Completed')
+
+    # Report Performance
+
+    print('Reporting Model Performance')
+
+    model = best_model
+
+    with torch.no_grad():
+        model.base.mode = 'test'
+        model.fc.mode = 'test'
+
+        test_auc = []
+        test_loss_bce = 0
+        test_loss_rest = 0
+        
+        for idx, (data, target) in enumerate(test_loader):
+            data = data.to(device)
+            target = target.to(device)
+
+            # Forward pass
+            output = model.forward(data)
+
+            test_loss_bce = (F.binary_cross_entropy(torch.sigmoid(output),target)).cpu()
+            test_loss_rest = (reg*model.base.wConv1.norm() + reg*model.base.wConv2.norm() + reg*model.fc.wHidden.norm() + reg*model.fc.wNeu.norm()).cpu()
+            
+            pred_sig=torch.sigmoid(output)
+            pred=pred_sig.cpu().detach().numpy().reshape(output.shape[0])
+            labels=target.cpu().numpy().reshape(output.shape[0])
+            try:
+                test_auc.append(metrics.roc_auc_score(labels, pred))
+            except ValueError:
+                pass
+
+        AUC_test=np.mean(test_auc)
+        write_test_result(name, id, AUC_test, test_loss_bce, test_loss_rest)
 
 if __name__ == '__main__':
     main()
