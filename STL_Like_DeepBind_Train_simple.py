@@ -19,7 +19,8 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='Set hyperparameters or you can use default hyperparameter settings defined in the hyperparameter.json file')
     parser.add_argument('--TF', type=str, required=True, nargs=1, choices=['ARID3A', 'CTCFL', 'ELK1', 'FOXA1', 'GABPA', 'MYC', 'REST', 'SP1', 'USF1', 'ZBTB7A'], help='choose one from [ARID3A / CTCFL / ELK1 / FOXA1 / GABPA / MYC / REST / SP1 / USF1 / ZBTB7A]')
     parser.add_argument('--id', type=str, required=True, help='Set the name or id of this experiment')
-    parser.add_argument('--reg', type=int, required=True)
+    # parser.add_argument('--reg', type=int, required=True)
+    parser.add_argument('--dr', type=float, required=True)
     args = parser.parse_args()
     return args
 
@@ -31,7 +32,8 @@ def main():
     args = arg_parser()
     tf = args.TF
     id = args.id
-    lambda_input = args.reg
+    dr = args.dr
+    # lambda_input = args.reg
     print('TF Binding Prediction for', tf)
     print('Searching for all hyperparameter settings...')
 
@@ -42,34 +44,34 @@ def main():
     motif_len = 24
     batch_size = 64
     # reg = 1*10**-2
-    # reg = 2*10**-6
-    if lambda_input == 1:
-        reg = 4*10**-2
-    elif lambda_input == 10:
-        reg = 4*10**-3
-    elif lambda_input == 100:
-        reg = 4*10**-4
-    elif lambda_input == 1000:
-        reg = 4*10**-5
-    elif lambda_input == 10000:
-        reg = 4*10**-6
-    elif lambda_input == 20000:
-        reg = 2*10**-6
+    reg = 2*10**-6
+    # if lambda_input == 1:
+    #     reg = 4*10**-2
+    # elif lambda_input == 10:
+    #     reg = 4*10**-3
+    # elif lambda_input == 100:
+    #     reg = 4*10**-4
+    # elif lambda_input == 1000:
+    #     reg = 4*10**-5
+    # elif lambda_input == 10000:
+    #     reg = 4*10**-6
+    # elif lambda_input == 20000:
+    #     reg = 2*10**-6
 
-    # pool_type = ['max']
-    # dropout_rate_type = [1.0] # 1.0 for no-dropout
-    # lr_type_sgd = [0.001, 0.005, 0.01, 0.05]
-    # lr_type_adam = [0.05]
-    # scheduler_type = [False] # use Cosine Annealing or not
-    # opt_type = ['Adam'] # optimizer
-
-    # MYC Best Settings
-    pool_type = ['maxavg']
-    dropout_rate_type = [0.5] # 1.0 for no-dropout
-    lr_type_sgd = [0.01]
+    pool_type = ['max']
+    dropout_rate_type = [dr] # 1.0 for no-dropout
+    lr_type_sgd = [0.001, 0.005, 0.01, 0.05]
     lr_type_adam = [0.05]
-    scheduler_type = [True] # use Cosine Annealing or not
-    opt_type = ['SGd'] # optimizer
+    scheduler_type = [False] # use Cosine Annealing or not
+    opt_type = ['Adam'] # optimizer
+
+    # # MYC Best Settings
+    # pool_type = ['maxavg']
+    # dropout_rate_type = [0.5] # 1.0 for no-dropout
+    # lr_type_sgd = [0.01]
+    # lr_type_adam = [0.05]
+    # scheduler_type = [True] # use Cosine Annealing or not
+    # opt_type = ['SGd'] # optimizer
 
     total_cases = len(pool_type)*len(dropout_rate_type)*len(lr_type_adam)*len(scheduler_type)*len(opt_type)
     print('Total cases :', total_cases)

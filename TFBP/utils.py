@@ -112,7 +112,6 @@ def write_settings_test(name, id, pool, dropout_rate, lr, scheduler, opt):
         file.write('\n')
     file.close()
 
-
 def mkdir(name, id):
     if not os.path.exists("./results/"+name+'-'+id+'/'+'experiemt/'):
         os.makedirs("./results/"+name+'-'+id+'/'+'experiemt/')
@@ -122,6 +121,11 @@ def mkdir(name, id):
         os.makedirs("./results/"+name+'-'+id+'/'+'valid/')
     if not os.path.exists("./results/"+name+'-'+id+'/'+'test/'):
         os.makedirs("./results/"+name+'-'+id+'/'+'test/')
+
+def mkdir_exp_multiple(name, id, num_exp):
+    for exp_num in range(num_exp):
+        if not os.path.exists("./results/"+name+'-'+id+'/'+'test/'+str(exp_num+1)):
+            os.makedirs("./results/"+name+'-'+id+'/'+'test/'+str(exp_num+1))
 
 def write_train_valid_result(name, id, case_num, AUC_training, Loss_training_bce, Loss_training_rest, AUC_validation, Loss_validation_bce, Loss_validation_rest, model_num, epoch):
     if (epoch == 0):
@@ -168,8 +172,34 @@ def write_train_test_result(name, id, AUC_training, Loss_training_bce, Loss_trai
         file.write('\n')
     file.close()
 
+def write_train_test_result_exp_multiple(name, id, AUC_training, Loss_training_bce, Loss_training_rest, AUC_test, Loss_test_bce, Loss_test_rest, model_num, exp_num):
+    with open("./results/"+name+'-'+id+'/'+'test/'+str(exp_num)+'/'+str(model_num)+'.txt', "a") as file:
+        file.write(str(AUC_training))
+        file.write(':')
+        file.write(str(Loss_training_bce))
+        file.write('+')
+        file.write(str(Loss_training_rest))
+        file.write(' | ')
+        file.write(str(AUC_test))
+        file.write(':')
+        file.write(str(Loss_test_bce))
+        file.write('+')
+        file.write(str(Loss_test_rest))
+        file.write('\n')
+    file.close()
+
 def write_test_result(name, id, AUC_test, Loss_test_bce, Loss_test_rest):
     with open("./results/"+name+'-'+id+'/'+'test/'+'performance'+'.txt', "a") as file:
+        file.write(str(AUC_test))
+        file.write(':')
+        file.write(str(float(Loss_test_bce)))
+        file.write('+')
+        file.write(str(float(Loss_test_rest)))
+        file.write('\n')
+    file.close()
+
+def write_test_result_exp_multiple(name, id, AUC_test, Loss_test_bce, Loss_test_rest, exp_num):
+    with open("./results/"+name+'-'+id+'/'+'test/'+str(exp_num)+'/'+'performance'+'.txt', "a") as file:
         file.write(str(AUC_test))
         file.write(':')
         file.write(str(float(Loss_test_bce)))
@@ -241,6 +271,25 @@ def find_best_setting(name, id, epoch):
     best_setting = settings[best_setting_idx]
     
     return best_setting
+
+def regularization_coefficient(lambda_input):
+    if lambda_input == 1:
+        reg = 4*10**-2
+    elif lambda_input == 10:
+        reg = 4*10**-3
+    elif lambda_input == 100:
+        reg = 4*10**-4
+    elif lambda_input == 1000:
+        reg = 4*10**-5
+    elif lambda_input == 10000:
+        reg = 4*10**-6
+    elif lambda_input == 20000:
+        reg = 2*10**-6
+    else:
+        return None
+    
+    return reg
+
 # datasets
 
 def datasets(file_path):

@@ -21,7 +21,8 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='Set hyperparameters or you can use default hyperparameter settings defined in the hyperparameter.json file')
     parser.add_argument('--TF', type=str, required=True, nargs=1, choices=['ARID3A', 'CTCFL', 'ELK1', 'FOXA1', 'GABPA', 'MYC', 'REST', 'SP1', 'USF1', 'ZBTB7A'], help='choose one from [ARID3A / CTCFL / ELK1 / FOXA1 / GABPA / MYC / REST / SP1 / USF1 / ZBTB7A]')
     parser.add_argument('--id', type=str, required=True, help='Set the name or id of this experiment')
-    parser.add_argument('--reg', type=int, required=True)
+    # parser.add_argument('--reg', type=int, required=True)
+    parser.add_argument('--dr', type=float, required=True)
     args = parser.parse_args()
     return args
 
@@ -32,9 +33,10 @@ def main():
     # parsing
     args = arg_parser()
     tf = args.TF
-    lambda_input = args.reg
+    # lambda_input = args.reg
     name = tf[0]
     id = args.id
+    dr = args.dr
 
     # Hyperparameters
     Num_Model = 6
@@ -42,24 +44,28 @@ def main():
     num_motif_detector = 16
     motif_len = 24
     batch_size = 64
-    if lambda_input == 1:
-        reg = 4*10**-2
-    elif lambda_input == 10:
-        reg = 4*10**-3
-    elif lambda_input == 100:
-        reg = 4*10**-4
-    elif lambda_input == 1000:
-        reg = 4*10**-5
-    elif lambda_input == 10000:
-        reg = 4*10**-6
-    elif lambda_input == 20000:
-        reg = 2*10**-6
+    reg = 2*10**-6
+    # if lambda_input == 1:
+    #     reg = 4*10**-2
+    # elif lambda_input == 10:
+    #     reg = 4*10**-3
+    # elif lambda_input == 100:
+    #     reg = 4*10**-4
+    # elif lambda_input == 1000:
+    #     reg = 4*10**-5
+    # elif lambda_input == 10000:
+    #     reg = 4*10**-6
+    # elif lambda_input == 20000:
+    #     reg = 2*10**-6
 
     best_hyperparameter_setting = find_best_setting(name, id, num_epochs)
     parsed = best_hyperparameter_setting.split(',')
 
     pool = parsed[0].split(' ')[-1]
     dropout_rate = float(parsed[1].split(' ')[-1])
+    if dropout_rate != dr:
+        print("droput rate error")
+
     lr = float(parsed[2].split(' ')[-1])
     scheduler = bool(parsed[3].split(' ')[-1])
     opt = parsed[4].split(' ')[-1].split('\n')[0]
