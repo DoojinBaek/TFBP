@@ -2,4 +2,7 @@
 ---------------------------------------------------------------------------------------------------------
 Initial Mean Train Loss : 0.6919817340000001+0.05766539999999999
 Final Mean Train Loss : 0.274191572+0.10652725810000001
-Best Mean Test Acc : 0.7143785999999999
+Best of Mean Test Acc : 0.7143785999999999
+Best of Best Test Acc : 0.744148
+Mean of Best Test Acc : 0.721069
+Std of Best Test Acc : 0.016237432241583027

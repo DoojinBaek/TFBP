@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : FOXA1
+31th experiment over 72
+pool : maxavg, dropout rate : 1.0, lr : 0.01, scheduler : False, optimizer : SGD

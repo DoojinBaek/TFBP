@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : USF1
+63th experiment over 72
+pool : max, dropout rate : 1.0, lr : 0.005, scheduler : False, optimizer : SGD
