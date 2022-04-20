@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : USF1
+48th experiment over 72
+pool : max, dropout rate : 0.5, lr : 0.1, scheduler : False, optimizer : Adam

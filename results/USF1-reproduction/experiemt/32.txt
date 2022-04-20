@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : USF1
+33th experiment over 72
+pool : maxavg, dropout rate : 1.0, lr : 0.05, scheduler : True, optimizer : SGD
