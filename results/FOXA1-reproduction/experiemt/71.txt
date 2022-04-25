@@ -1,0 +1,4 @@
+---------------------------------------------------------------------------------------------------------
+TF : FOXA1
+72th experiment over 72
+pool : max, dropout rate : 1.0, lr : 0.1, scheduler : False, optimizer : Adam

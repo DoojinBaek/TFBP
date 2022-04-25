@@ -23,7 +23,8 @@ def arg_parser():
     parser.add_argument('--reg', type=int, required=False, default = 20000, choices=[1, 10, 100, 1000, 10000, 20000])
     parser.add_argument('--dr', type=float, required=False, default=1.0)
     parser.add_argument('--lr', type=float, required=False, default=0.05)
-    parser.add_argument('--num_models', type=int, required=False, default=6)
+    parser.add_argument('--opt', type=str, required=False, choices=['sgd', 'adam'], default='adam')
+    parser.add_argument('--num_models', type=int, required=False, default=10)
     parser.add_argument('--epoch', type=int, required=False, default=150)
 
     args = parser.parse_args()
@@ -42,6 +43,7 @@ def main():
     dr = args.dr
     lambda_input = args.reg
     lr = args.lr
+    opt = args.opt
     num_model = args.num_models
     epochs = args.epoch
 
@@ -53,7 +55,7 @@ def main():
     batch_size = 64
 
     reg = regularization_coefficient(lambda_input) # default = 2*10**-6
-    opt = 'Adam'
+    opt = opt
     scheduler = False
     lr = lr
     pool = 'max'
